@@ -6,7 +6,7 @@ import { X, Send, Sparkles, MessageSquare, Bot, User, Zap, ChevronRight, Minimiz
 
 import { Message } from "@/types";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
 export default function GlobalCopilot() {
   const [isOpen, setIsOpen] = useState(false);

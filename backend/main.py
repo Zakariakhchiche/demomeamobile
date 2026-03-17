@@ -4,15 +4,17 @@ import time
 
 app = FastAPI(title="Origination Platform API", version="0.1.0")
 
-# Restrict CORS to known dev origins only
+# Restrict CORS to known dev origins and production
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
         "http://localhost:3001",
+        "https://*.vercel.app",
+        "https://demoema.vercel.app", # Potential production URL
     ],
     allow_credentials=True,
-    allow_methods=["GET", "POST"],
+    allow_methods=["*"],
     allow_headers=["*"],
 )
 

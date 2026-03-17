@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 
 import { Target as TargetData } from "@/types";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
 type SortKey = "name" | "sector" | "dealType" | "priorityScore";
 

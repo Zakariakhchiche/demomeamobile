@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Target, Award, Users, Clock, Zap, Building, Crosshair, TrendingUp, AlertCircle, FileText, Share2, MoreVertical, ShieldCheck, ArrowRight, Radio, Fingerprint } from "lucide-react";
 import { useParams } from "next/navigation";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
 export default function TargetDetail() {
   const params = useParams();
