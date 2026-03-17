@@ -14,7 +14,7 @@ const outfit = Outfit({
 });
 
 export const metadata: Metadata = {
-  title: "Aethelgard | AI Origination Engine",
+  title: "EdRCF 5.0 | AI Origination Engine",
   description: "Proprietary intelligence for M&A and Private Equity origination.",
 };
 

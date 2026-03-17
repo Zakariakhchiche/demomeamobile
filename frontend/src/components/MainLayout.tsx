@@ -30,7 +30,7 @@ export default function MainLayout({
              <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center">
                 <Zap size={16} className="text-white" />
              </div>
-             <span className="text-white font-black text-sm tracking-tighter uppercase block leading-none">Aethelgard</span>
+             <span className="text-white font-black text-sm tracking-tighter uppercase block leading-none">EdRCF 5.0</span>
           </div>
           <button 
             onClick={() => setIsSidebarOpen(true)}

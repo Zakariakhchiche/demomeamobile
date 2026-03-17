@@ -44,7 +44,7 @@ export default function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean, setIsO
               <Zap size={20} className="text-white relative z-10" />
             </div>
             <div>
-              <span className="text-white font-black text-base tracking-tighter uppercase block leading-none">Aethelgard</span>
+              <span className="text-white font-black text-base tracking-tighter uppercase block leading-none">EdRCF 5.0</span>
               <div className="flex items-center gap-1.5 mt-1">
                  <div className="w-1 h-1 rounded-full bg-indigo-500" />
                  <span className="text-[8px] font-black text-indigo-400 uppercase tracking-[0.2em] leading-none">Transactional Engine</span>

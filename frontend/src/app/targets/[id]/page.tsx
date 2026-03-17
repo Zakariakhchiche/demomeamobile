@@ -83,7 +83,7 @@ export default function TargetDetail() {
                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Live Analysis
                </div>
                <p className="text-gray-500 text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] break-all">
-                  Vault: <span className="text-gray-300">Classified</span> • Protocol: <span className="text-gray-300">Aethelgard-7</span>
+                  Vault: <span className="text-gray-300">Classified</span> • Protocol: <span className="text-gray-300">EdRCF-Core</span>
                </p>
             </div>
           </div>

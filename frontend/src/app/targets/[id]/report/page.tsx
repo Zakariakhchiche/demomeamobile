@@ -67,7 +67,7 @@ export default function ReportPage() {
               <div className="w-10 h-10 bg-black flex items-center justify-center rounded-xl">
                  <Zap size={20} className="text-white" />
               </div>
-              <span className="font-black text-xl sm:text-2xl tracking-tighter uppercase">Aethelgard</span>
+              <span className="font-black text-xl sm:text-2xl tracking-tighter uppercase">EdRCF 5.0</span>
             </div>
             <h1 className="text-3xl sm:text-5xl font-black tracking-tighter mb-2">TARGET DOSSIER</h1>
             <p className="text-gray-500 font-bold uppercase tracking-[0.2em] text-[10px] sm:text-xs">Internal Strategic Intelligence • {new Date().toLocaleDateString()}</p>
@@ -133,7 +133,7 @@ export default function ReportPage() {
                  </div>
                  <h3 className="text-lg font-black mb-4 relative z-10 text-left">Strategic Thesis</h3>
                  <p className="text-gray-600 leading-relaxed font-medium relative z-10 text-sm sm:text-base text-left">
-                    The entity's current capital structure and recent executive activity indicate a pre-transactional phase. Our proprietary "Aethelgard-7" protocol identifies a high convergence of liquidity pressure and succession needs.
+                    The entity's current capital structure and recent executive activity indicate a pre-transactional phase. Our proprietary "EdRCF-Core" protocol identifies a high convergence of liquidity pressure and succession needs.
                  </p>
               </div>
 
@@ -186,7 +186,7 @@ export default function ReportPage() {
 
         {/* Footer */}
         <div className="mt-8 sm:mt-12 pt-8 sm:pt-12 border-t border-gray-200 flex flex-col sm:flex-row justify-between items-center text-[7px] sm:text-[8px] font-black text-gray-400 uppercase tracking-[0.2em] sm:tracking-[0.4em] gap-4 text-center sm:text-left">
-           <span>AETHELGARD-DOSSIER-V1</span>
+           <span>EDRCF-DOSSIER-V5</span>
            <span className="hidden sm:inline">SECURE TRANSMISSION PROTOCOL: ENABLED</span>
            <span>ID: {target.id.toUpperCase()}-{Math.random().toString(36).substring(7).toUpperCase()}</span>
         </div>
