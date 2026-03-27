@@ -16,6 +16,19 @@ export interface Activation {
   reason: string;
 }
 
+export interface Financials {
+  revenue: string;
+  revenue_growth: string;
+  ebitda: string;
+  ebitda_margin: string;
+}
+
+export interface Relationship {
+  strength: number;
+  path: string;
+  common_connections: number;
+}
+
 export interface Risks {
   falsePositive: string;
   uncertainties: string;
@@ -28,6 +41,8 @@ export interface Target {
   globalScore: number;
   priorityLevel: string;
   topSignals: Signal[];
+  financials: Financials;
+  relationship: Relationship;
   analysis: TargetAnalysis;
   activation: Activation;
   risks: Risks;

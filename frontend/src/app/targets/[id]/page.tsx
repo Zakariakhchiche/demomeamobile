@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   ArrowLeft, Target, ShieldCheck, Zap, TrendingUp, AlertCircle, 
   Share2, ArrowRight, Radio, Fingerprint, Activity, Clock, 
-  Users, Briefcase, Crosshair, MapPin, Gauge, FileText, AlertTriangle
+  Users, Briefcase, Crosshair, MapPin, Gauge, FileText, AlertTriangle, Network
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { Target as TargetType } from "@/types";
@@ -188,20 +188,52 @@ export default function TargetDetail() {
                     <span className="text-[10px] font-black text-indigo-400/60 uppercase tracking-[0.4em]">Global Score</span>
                   </div>
                 </div>
-                <div className="mt-12 flex flex-col items-center">
+
+                {/* Financial Quick View */}
+                <div className="mt-12 w-full grid grid-cols-2 gap-4">
+                  <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/5 text-center">
+                    <div className="text-[8px] font-black text-gray-600 uppercase tracking-widest mb-1">Revenue</div>
+                    <div className="text-sm font-black text-gray-200">{targetData.financials.revenue}</div>
+                    <div className="text-[8px] font-bold text-emerald-500">{targetData.financials.revenue_growth}</div>
+                  </div>
+                  <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/5 text-center">
+                    <div className="text-[8px] font-black text-gray-600 uppercase tracking-widest mb-1">EBITDA</div>
+                    <div className="text-sm font-black text-gray-200">{targetData.financials.ebitda}</div>
+                    <div className="text-[8px] font-bold text-gray-500">{targetData.financials.ebitda_margin} Mg.</div>
+                  </div>
+                </div>
+
+                <div className="mt-8 flex flex-col items-center w-full">
                    <span className="text-[10px] font-black text-gray-600 uppercase tracking-widest mb-4">Priority Status</span>
-                   <div className="text-lg font-black text-white px-6 py-2 rounded-2xl bg-white/5 border border-white/10 italic">
+                   <div className="w-full text-center text-lg font-black text-white px-6 py-3 rounded-2xl bg-indigo-600/10 border border-indigo-500/20 italic">
                       {targetData.priorityLevel}
                    </div>
                 </div>
               </div>
 
-              <div className="space-y-6 mt-16 border-t border-white/[0.05] pt-12">
-                   <div className="flex justify-between items-center px-4">
-                     <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Active Cluster</span>
-                     <div className="flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                        <span className="text-[10px] font-black text-white uppercase tracking-widest">{targetData.sector}</span>
+              {/* Relationship Section */}
+              <div className="space-y-6 mt-8 border-t border-white/[0.05] pt-8">
+                   <div className="flex items-center gap-3 mb-4">
+                      <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                         <Network size={16} />
+                      </div>
+                      <span className="text-[10px] font-black text-white uppercase tracking-widest">Network Proximity</span>
+                   </div>
+                   <div className="space-y-4">
+                     <div className="flex justify-between items-center text-[10px]">
+                        <span className="text-gray-500 font-bold uppercase">Path Strength</span>
+                        <span className="text-emerald-400 font-black">{targetData.relationship.strength}%</span>
+                     </div>
+                     <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
+                        <motion.div 
+                          initial={{ width: 0 }}
+                          animate={{ width: `${targetData.relationship.strength}%` }}
+                          className="h-full bg-emerald-500" 
+                        />
+                     </div>
+                     <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5 space-y-1">
+                        <div className="text-[8px] font-bold text-gray-600 uppercase">Primary Link</div>
+                        <div className="text-[11px] font-black text-gray-300">{targetData.relationship.path}</div>
                      </div>
                    </div>
               </div>
