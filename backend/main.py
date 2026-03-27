@@ -58,6 +58,17 @@ MOCK_TARGETS: List[Dict[str, Any]] = [
             {"id": "founder_age_58_plus", "label": "Founder Age > 60", "family": "Executive"},
             {"id": "carve_out", "label": "Non-core branch Filialisation", "family": "Structure"}
         ],
+        "financials": {
+            "revenue": "€45.2M",
+            "revenue_growth": "+12.4%",
+            "ebitda": "€8.1M",
+            "ebitda_margin": "18.0%"
+        },
+        "relationship": {
+            "strength": 88,
+            "path": "Lazard Advisory Board",
+            "common_connections": 12
+        },
         "analysis": {
             "type": "Transmission / LBO",
             "window": "6-12 months",
@@ -91,6 +102,17 @@ MOCK_TARGETS: List[Dict[str, Any]] = [
             {"id": "debt_surge", "label": "Surge in financial debt", "family": "Financial"},
             {"id": "ceo_non_founder", "label": "External CEO in place", "family": "Management"}
         ],
+        "financials": {
+            "revenue": "€128.5M",
+            "revenue_growth": "+34.2%",
+            "ebitda": "€12.4M",
+            "ebitda_margin": "9.6%"
+        },
+        "relationship": {
+            "strength": 42,
+            "path": "PwC Tax Advisory",
+            "common_connections": 4
+        },
         "analysis": {
             "type": "Capital Opening",
             "window": "12-18 months",
@@ -123,6 +145,17 @@ MOCK_TARGETS: List[Dict[str, Any]] = [
             {"id": "sci_creation", "label": "Real Estate Holding Creation", "family": "Ownership"},
             {"id": "sector_consolidation", "label": "Strong sector consolidation", "family": "Sector"}
         ],
+        "financials": {
+            "revenue": "€89.0M",
+            "revenue_growth": "+4.1%",
+            "ebitda": "€14.5M",
+            "ebitda_margin": "16.3%"
+        },
+        "relationship": {
+            "strength": 15,
+            "path": "General Sector Outreach",
+            "common_connections": 1
+        },
         "analysis": {
             "type": "Disposal / Consolidation",
             "window": "18+ months",

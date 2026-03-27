@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Layers, Plus, MoreHorizontal, Activity, Target, Zap, Clock, ShieldCheck, ArrowRight, Radio, Filter, Sparkles, ChevronRight } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { Target as TargetType } from "@/types";
 
@@ -20,6 +21,7 @@ export default function PipelinePage() {
   const [loading, setLoading] = useState(true);
   const [processingAction, setProcessingAction] = useState<string | null>(null);
   const [notification, setNotification] = useState<string | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     if (notification) {
@@ -106,7 +108,7 @@ export default function PipelinePage() {
             </div>
           </h1>
           <p className="text-gray-400 text-base md:text-lg font-medium max-w-2xl leading-relaxed">
-            Gestion du cycle d'origination. Les cibles sont classées par <span className="text-white">probabilité transactionnelle à 6-18 mois</span>.
+            Origination cycle management. Targets are ranked by <span className="text-white">transaction probability within 6-18 months</span>.
           </p>
         </div>
         
@@ -183,7 +185,7 @@ export default function PipelinePage() {
                                       </span>
                                     ))}
                                  </div>
-                                 <button onClick={() => window.location.href=`/targets/${card.id}`} className="p-2 rounded-xl bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 transition-all">
+                                 <button onClick={() => router.push(`/targets/${card.id}`)} className="p-2 rounded-xl bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 transition-all">
                                     <ChevronRight size={18} />
                                  </button>
                               </div>

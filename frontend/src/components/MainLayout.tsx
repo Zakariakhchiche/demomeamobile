@@ -8,19 +8,13 @@ import GlobalCopilot from "@/components/GlobalCopilot";
 
 export default function MainLayout({
   children,
-  interVariable,
-  outfitVariable,
 }: {
   children: React.ReactNode;
-  interVariable: string;
-  outfitVariable: string;
 }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (
-    <body
-      className={`${interVariable} ${outfitVariable} antialiased bg-[#020202] text-gray-100 min-h-screen font-sans flex overflow-x-hidden`}
-    >
+    <>
       <div className="print:hidden">
         <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
       </div>
@@ -69,6 +63,6 @@ export default function MainLayout({
         <CommandPalette />
         <GlobalCopilot />
       </div>
-    </body>
+    </>
   );
 }

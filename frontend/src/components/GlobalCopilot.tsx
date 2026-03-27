@@ -31,6 +31,12 @@ export default function GlobalCopilot() {
     }
   }, [messages, isLoading]);
 
+  useEffect(() => {
+    const handleToggle = () => setIsOpen(prev => !prev);
+    window.addEventListener("toggle-copilot", handleToggle);
+    return () => window.removeEventListener("toggle-copilot", handleToggle);
+  }, []);
+
   const handleSend = async (e?: React.FormEvent, directValue?: string) => {
     if (e) e.preventDefault();
     
@@ -50,17 +56,25 @@ export default function GlobalCopilot() {
 
     try {
       const res = await fetch(`/api/copilot/query?q=${encodeURIComponent(query)}`);
+      if (!res.ok) throw new Error("API Connection Failed");
       const data = await res.json();
 
       const assistantMsg: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content: data.response,
+        content: data.response || "I'm having trouble processing that request. Please try again.",
         timestamp: Date.now(),
       };
       setMessages(prev => [...prev, assistantMsg]);
     } catch (err) {
       console.error(err);
+      const errorMsg: Message = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: "CRITICAL CONNECTION ERROR: Unable to establish secure link to EDRCF neural processors. Please verify local host status.",
+        timestamp: Date.now(),
+      };
+      setMessages(prev => [...prev, errorMsg]);
     } finally {
       setIsLoading(false);
     }

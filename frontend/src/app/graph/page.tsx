@@ -16,19 +16,19 @@ const graphData = {
     { id: 'JD', name: 'John Doe', type: 'internal', role: 'Partner', color: '#6366f1' },
     { id: 'AS', name: 'Alice Smith', type: 'internal', role: 'Associate', color: '#6366f1' },
     { id: 'MB', name: 'Marc Berenson', type: 'target', role: 'CEO, Aetherial SA', color: '#10b981' },
-    { id: 'TW', name: 'Thomas Wright', type: 'target', role: 'Founder, TechFlow', color: '#10b981' },
+    { id: 'edrcf-1', name: 'Thomas Wright', type: 'target', role: 'Founder, TechFlow', color: '#10b981' },
     { id: 'SJ', name: 'Sarah Jenkins', type: 'advisor', role: 'MD, Lazard', color: '#f59e0b' },
     { id: 'RJ', name: 'Robert Jones', type: 'advisor', role: 'Partner, PwC', color: '#f59e0b' },
-    { id: 'AL', name: 'Alice Laurent', type: 'target', role: 'CFO, NexSphere', color: '#10b981' },
+    { id: 'edrcf-2', name: 'Alice Laurent', type: 'target', role: 'CFO, NexSphere', color: '#10b981' },
   ],
   links: [
     { source: 'JD', target: 'MB', label: 'Board Overlap', value: 3 },
     { source: 'JD', target: 'SJ', label: 'Former Colleague', value: 2 },
     { source: 'SJ', target: 'MB', label: 'Lead Advisor', value: 5 },
-    { source: 'AS', target: 'TW', label: 'Alumni Network', value: 1 },
-    { source: 'AS', target: 'AL', label: 'Relationship Path', value: 2 },
-    { source: 'MB', target: 'AL', label: 'Industry Peer', value: 1 },
-    { source: 'RJ', target: 'TW', label: 'Tax Advisory', value: 4 },
+    { source: 'AS', target: 'edrcf-1', label: 'Alumni Network', value: 1 },
+    { source: 'AS', target: 'edrcf-2', label: 'Relationship Path', value: 2 },
+    { source: 'MB', target: 'edrcf-2', label: 'Industry Peer', value: 1 },
+    { source: 'RJ', target: 'edrcf-1', label: 'Tax Advisory', value: 4 },
   ]
 };
 
