@@ -547,24 +547,30 @@ export default function Home() {
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
-            className="p-6 sm:p-10 rounded-[2rem] sm:rounded-[3rem] bg-black/40 border border-white/10 lg:backdrop-blur-3xl shadow-2xl"
+            className="p-6 sm:p-10 rounded-[2rem] sm:rounded-[3rem] bg-gradient-to-b from-amber-500/[0.04] to-black/40 border border-amber-500/20 hover:border-amber-500/40 lg:backdrop-blur-3xl shadow-2xl transition-all relative overflow-hidden"
           >
+            {/* Accent glow */}
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-500/60 via-amber-400/30 to-transparent" />
+
             <div className="flex items-center justify-between mb-8">
               <h2 className="text-[11px] font-black text-white uppercase tracking-[0.3em] flex items-center gap-3">
-                <Newspaper size={18} className="text-amber-400" /> CFNEWS Veille
+                <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/20">
+                  <Newspaper size={16} className="text-amber-400" />
+                </div>
+                CFNEWS Veille
               </h2>
               <div className="flex items-center gap-2">
                 {cfnewsLoading && (
                   <div className="w-3 h-3 border-2 border-amber-500/20 border-t-amber-500 rounded-full animate-spin" />
                 )}
-                <span className="text-[9px] font-black text-amber-400 px-2 py-0.5 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                <span className="text-[9px] font-black text-amber-400 px-2.5 py-1 rounded-xl bg-amber-500/10 border border-amber-500/20">
                   {cfnewsTargets.length} entreprises
                 </span>
               </div>
             </div>
 
             {cfnewsLoading ? (
-              <div className="space-y-4">
+              <div className="space-y-5">
                 {Array.from({ length: 4 }).map((_, i) => (
                   <div key={i} className="animate-pulse">
                     <div className="flex justify-between items-center mb-2">
@@ -576,18 +582,18 @@ export default function Home() {
                 ))}
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-5">
                 {cfnewsTargets.slice(0, 5).map((ct, idx) => (
                   <motion.div
                     key={ct.id || idx}
                     initial={{ opacity: 0, x: 10 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: idx * 0.05 }}
-                    className="group cursor-pointer"
+                    className="group cursor-pointer p-3 -mx-3 rounded-2xl hover:bg-white/[0.03] transition-all"
                     onClick={() => setCfnewsOpen(true)}
                   >
-                    <div className="flex justify-between items-center mb-2 gap-2">
-                      <span className="text-[11px] font-black text-gray-400 group-hover:text-white transition-colors uppercase tracking-widest truncate min-w-0">
+                    <div className="flex justify-between items-center mb-1.5 gap-2">
+                      <span className="text-xs font-black text-gray-300 group-hover:text-white transition-colors tracking-wide truncate min-w-0">
                         {ct.name}
                       </span>
                       <span
@@ -604,11 +610,9 @@ export default function Home() {
                         {ct.globalScore || "—"}
                       </span>
                     </div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-[9px] font-bold text-gray-600 truncate">
-                        {ct.cfnews?.titre}
-                      </span>
-                    </div>
+                    <p className="text-[10px] font-medium text-gray-500 group-hover:text-gray-400 transition-colors truncate mb-2.5 leading-relaxed">
+                      {ct.cfnews?.titre}
+                    </p>
                     <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden shadow-inner">
                       <motion.div
                         initial={{ width: 0 }}
@@ -631,7 +635,7 @@ export default function Home() {
 
             <button
               onClick={() => setCfnewsOpen(true)}
-              className="w-full mt-8 flex items-center justify-center gap-3 px-6 py-3 rounded-2xl bg-amber-500/5 border border-amber-500/10 text-[10px] font-black text-amber-400 uppercase tracking-widest hover:bg-amber-500/10 hover:border-amber-500/30 transition-all"
+              className="w-full mt-6 flex items-center justify-center gap-3 px-6 py-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-[10px] font-black text-amber-400 uppercase tracking-widest hover:bg-amber-500/20 hover:border-amber-500/40 transition-all active:scale-[0.98]"
             >
               Voir toutes les entreprises <ChevronRight size={14} />
             </button>
@@ -675,7 +679,7 @@ export default function Home() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-start justify-center overflow-y-auto py-8 px-4"
+            className="fixed inset-0 z-[150] bg-black/80 backdrop-blur-md flex items-start justify-center overflow-y-auto py-4 sm:py-8 px-3 sm:px-4"
             onClick={() => setCfnewsOpen(false)}
           >
             <motion.div
@@ -687,17 +691,17 @@ export default function Home() {
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header */}
-              <div className="flex items-center justify-between mb-8">
-                <div className="flex items-center gap-5">
-                  <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20">
-                    <Newspaper size={24} className="text-amber-400" />
+              <div className="flex items-center justify-between mb-6 sm:mb-8 sticky top-0 z-10 bg-black/60 backdrop-blur-xl py-3 -mt-4 sm:-mt-8 px-1 rounded-b-2xl">
+                <div className="flex items-center gap-3 sm:gap-5">
+                  <div className="p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl bg-amber-500/10 border border-amber-500/20">
+                    <Newspaper size={20} className="text-amber-400" />
                   </div>
                   <div>
-                    <h2 className="text-3xl font-black text-white tracking-tighter">
+                    <h2 className="text-xl sm:text-3xl font-black text-white tracking-tighter">
                       Veille CFNEWS
                     </h2>
-                    <p className="text-[11px] font-black text-gray-500 uppercase tracking-widest mt-1">
-                      {cfnewsTargets.length} entreprises détectées &middot; Scoring EdRCF temps réel
+                    <p className="text-[9px] sm:text-[11px] font-black text-gray-500 uppercase tracking-widest mt-0.5">
+                      {cfnewsTargets.length} entreprises &middot; Scoring EdRCF
                     </p>
                   </div>
                 </div>
@@ -717,7 +721,7 @@ export default function Home() {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: idx * 0.05 }}
                     key={target.id || idx}
-                    className="group p-6 sm:p-8 rounded-[2rem] bg-black/60 border border-white/10 hover:border-amber-500/30 transition-all relative overflow-hidden backdrop-blur-xl shadow-2xl"
+                    className="group p-5 sm:p-8 rounded-2xl sm:rounded-[2rem] bg-black/60 border border-white/10 hover:border-amber-500/30 transition-all relative overflow-hidden backdrop-blur-xl shadow-2xl"
                   >
                     {/* Source badge */}
                     <div className="absolute top-4 right-4 flex items-center gap-2">
