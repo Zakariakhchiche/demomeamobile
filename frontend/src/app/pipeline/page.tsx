@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { Layers, Plus, MoreHorizontal, Activity, Target, Zap, Clock, ShieldCheck, ArrowRight, Radio, Filter, Sparkles, ChevronRight, TrendingUp, DollarSign } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -54,6 +55,7 @@ export default function PipelinePage() {
   const [processingAction, setProcessingAction] = useState<string | null>(null);
   const [notification, setNotification] = useState<string | null>(null);
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   const { data, isLoading } = usePipeline();
   const columns = data?.data ?? [];
@@ -66,12 +68,21 @@ export default function PipelinePage() {
     }
   }, [notification]);
 
-  const handleAction = (name: string, message: string) => {
+  const handleAction = async (name: string, message: string) => {
     setProcessingAction(name);
-    setTimeout(() => {
-      setProcessingAction(null);
+    try {
+      if (name === "sync") {
+        await queryClient.invalidateQueries({ queryKey: ["pipeline"] });
+        await queryClient.invalidateQueries({ queryKey: ["targets"] });
+        setNotification("Pipeline synchronisé avec les dernières données.");
+      } else {
+        setNotification(message);
+      }
+    } catch {
       setNotification(message);
-    }, 1500);
+    } finally {
+      setProcessingAction(null);
+    }
   };
 
   useEffect(() => {

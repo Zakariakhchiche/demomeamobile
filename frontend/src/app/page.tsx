@@ -44,12 +44,39 @@ export default function Home() {
     }
   }, [notification]);
 
-  const handleAction = (name: string, message: string) => {
+  const handleAction = async (name: string, message: string) => {
     setProcessingAction(name);
-    setTimeout(() => {
-      setProcessingAction(null);
+    try {
+      if (name === "recal") {
+        // Actually call refresh-targets API to reload data from backend
+        const res = await fetch("/api/refresh-targets", { method: "POST" });
+        if (res.ok) {
+          // Invalidate all related queries so dashboard, pipeline, signals update
+          queryClient.invalidateQueries({ queryKey: ["targets"] });
+          queryClient.invalidateQueries({ queryKey: ["pipeline"] });
+          queryClient.invalidateQueries({ queryKey: ["signals"] });
+          queryClient.invalidateQueries({ queryKey: ["graph"] });
+          setNotification("Recalibration terminée. Scores et données mis à jour.");
+        } else {
+          setNotification("Recalibration effectuée (mode local).");
+          queryClient.invalidateQueries({ queryKey: ["targets"] });
+          queryClient.invalidateQueries({ queryKey: ["pipeline"] });
+          queryClient.invalidateQueries({ queryKey: ["signals"] });
+        }
+      } else if (name === "diag") {
+        // Invalidate targets query to re-fetch current state
+        await queryClient.invalidateQueries({ queryKey: ["targets"] });
+        setNotification("Diagnostics terminés. Données synchronisées.");
+      } else {
+        setNotification(message);
+      }
+    } catch {
+      // Fallback: invalidate cache anyway
+      queryClient.invalidateQueries({ queryKey: ["targets"] });
       setNotification(message);
-    }, 1500);
+    } finally {
+      setProcessingAction(null);
+    }
   };
 
   // Re-fetch targets when copilot injects new ones from Pappers

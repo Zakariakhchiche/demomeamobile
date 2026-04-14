@@ -47,7 +47,36 @@ export function useMoveCard() {
       if (!res.ok) throw new Error(`HTTP error: ${res.status}`);
       return res.json();
     },
-    onSuccess: () => {
+    // Optimistic update: move the card immediately in the UI
+    onMutate: async ({ cardId, fromStage, toStage, newIndex }) => {
+      await queryClient.cancelQueries({ queryKey: ["pipeline"] });
+      const previous = queryClient.getQueryData<PipelineData>(["pipeline"]);
+
+      queryClient.setQueryData<PipelineData>(["pipeline"], (old) => {
+        if (!old) return old;
+        const stages = old.data.map((s) => ({ ...s, cards: [...s.cards] }));
+        const srcStage = stages.find((s) => s.id === fromStage);
+        const dstStage = stages.find((s) => s.id === toStage);
+        if (!srcStage || !dstStage) return old;
+
+        const cardIndex = srcStage.cards.findIndex((c) => c.id === cardId);
+        if (cardIndex === -1) return old;
+        const [card] = srcStage.cards.splice(cardIndex, 1);
+        dstStage.cards.splice(newIndex, 0, card);
+
+        return { data: stages };
+      });
+
+      return { previous };
+    },
+    // Rollback on error
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(["pipeline"], context.previous);
+      }
+    },
+    // Always refetch after mutation settles
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["pipeline"] });
     },
   });

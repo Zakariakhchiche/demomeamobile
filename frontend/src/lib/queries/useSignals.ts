@@ -32,6 +32,6 @@ export function useSignals() {
       if (!res.ok) throw new Error(`HTTP error: ${res.status}`);
       return res.json();
     },
-    staleTime: 30 * 1000,
+    staleTime: 60 * 1000,
   });
 }
