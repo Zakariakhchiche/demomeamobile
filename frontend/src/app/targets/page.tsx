@@ -610,11 +610,26 @@ export default function TargetsPage() {
                           <div className="font-black text-white text-sm lg:text-base group-hover:text-indigo-400 transition-colors tracking-tighter leading-tight mb-1 truncate">
                             {target.name}
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <span className={`px-2 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-widest border ${structureClass}`}>
                               {target.structure}
                             </span>
+                            {target.statut_activite === "Radie" && (
+                              <span className="px-2 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-widest bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                                Radiee
+                              </span>
+                            )}
+                            {target.group?.is_holding && (
+                              <span className="px-2 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-widest bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                                Holding
+                              </span>
+                            )}
                           </div>
+                          {target.dirigeants?.[0] && (
+                            <div className="text-[9px] text-gray-500 font-bold mt-1 truncate">
+                              {target.dirigeants[0].name}{target.dirigeants[0].age > 0 ? ` (${target.dirigeants[0].age} ans)` : ""}
+                            </div>
+                          )}
                         </div>
                       </div>
 

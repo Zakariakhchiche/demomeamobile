@@ -308,6 +308,23 @@ export default function TargetDetail() {
             <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] flex items-center gap-2 mb-8">
               <Building2 size={16} className="text-indigo-400" /> Identite Societe
             </h3>
+            {/* Statut Activité */}
+            {targetData.statut_activite && (
+              <div className={`flex items-center justify-between p-3 rounded-xl border mb-4 ${
+                targetData.statut_activite === "Radie"
+                  ? "bg-rose-500/10 border-rose-500/20"
+                  : "bg-emerald-500/10 border-emerald-500/20"
+              }`}>
+                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest">
+                  <Activity size={14} className={targetData.statut_activite === "Radie" ? "text-rose-400" : "text-emerald-400"} />
+                  <span className={targetData.statut_activite === "Radie" ? "text-rose-400" : "text-emerald-400"}>Statut</span>
+                </div>
+                <span className={`text-[11px] font-black ${targetData.statut_activite === "Radie" ? "text-rose-400" : "text-emerald-400"}`}>
+                  {targetData.statut_activite === "Radie" ? "Radiee" : "En activite"}
+                  {targetData.date_cessation ? ` (${targetData.date_cessation})` : ""}
+                </span>
+              </div>
+            )}
             <div className="space-y-4">
               {[
                 { label: "SIREN", value: targetData.siren, icon: <Hash size={14} /> },
@@ -383,6 +400,24 @@ export default function TargetDetail() {
                 <Network size={16} className="text-indigo-400" /> Structure du Groupe
               </h3>
               <div className="space-y-4">
+                {/* Badges: Holding + Procédure collective */}
+                <div className="flex flex-wrap gap-2">
+                  {targetData.group.is_holding && (
+                    <span className="px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                      Holding
+                    </span>
+                  )}
+                  {targetData.group.nb_etablissements && targetData.group.nb_etablissements > 1 && (
+                    <span className="px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                      {targetData.group.nb_etablissements} etablissements
+                    </span>
+                  )}
+                  {targetData.group.procedure_collective_en_cours && (
+                    <span className="px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest bg-rose-500/10 text-rose-400 border border-rose-500/20 animate-pulse">
+                      Procedure collective en cours
+                    </span>
+                  )}
+                </div>
                 {targetData.group.parent && (
                   <div className="p-4 rounded-2xl bg-indigo-500/5 border border-indigo-500/10">
                     <div className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-1">Maison Mere</div>
