@@ -110,8 +110,10 @@ def _resolve_pappers_url() -> str:
                     return url
         except Exception as e:
             print(f"[EdRCF] .mcp.json read error ({mcp_path}): {e}")
-    print(f"[EdRCF] WARNING: PAPPERS_MCP_URL not found. Searched: {search_paths}")
-    return ""
+    # Last resort: use the known Pappers MCP endpoint from .mcp.json in the repo
+    default_url = "https://mcp.pappers.fr/1205c93f92d9d021ff5c9aa40d23dff6e71e33fc81badf2b"
+    print(f"[EdRCF] Pappers MCP URL: using built-in default")
+    return default_url
 
 
 PAPPERS_MCP_URL = _resolve_pappers_url()
