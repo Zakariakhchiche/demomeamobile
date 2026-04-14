@@ -15,7 +15,6 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Dict, Any, Optional
 import asyncio
-import time
 import copy
 import json
 import re
@@ -93,6 +92,8 @@ enriched_targets = []
 _next_idx = 0  # auto-increment index for new targets
 # Keep raw targets (pre-enrichment) for re-scoring
 raw_targets = []
+# Lock to protect concurrent mutations on enriched_targets / raw_targets
+_targets_lock = asyncio.Lock()
 
 
 def _load_targets_sync():
@@ -161,9 +162,10 @@ _load_targets_sync()
 
 async def _add_company_to_targets(siren: str) -> Optional[dict]:
     """Fetch a company from Pappers, build a target, and add it to enriched_targets.
-    Returns the enriched target dict, or None if it fails."""
+    Returns the enriched target dict, or None if it fails.
+    Thread-safe via _targets_lock."""
     global enriched_targets, raw_targets, _next_idx
-    # Already present?
+    # Quick check outside lock (avoids unnecessary Pappers call)
     existing = next((t for t in enriched_targets if t.get("siren") == siren), None)
     if existing:
         return existing
@@ -171,13 +173,18 @@ async def _add_company_to_targets(siren: str) -> Optional[dict]:
         company_info = await get_pappers_company(siren)
         if not company_info or not isinstance(company_info, dict) or "raw" in company_info:
             return None
-        _next_idx = max(_next_idx, len(enriched_targets)) + 1
-        target = build_target(idx=_next_idx, company_info=company_info, search_info={})
-        raw_targets.append(target)
-        enriched = enrich_target(target)
-        enriched_targets.append(enriched)
-        save_cache(raw_targets)
-        return enriched
+        async with _targets_lock:
+            # Re-check inside lock (another coroutine may have added it)
+            existing = next((t for t in enriched_targets if t.get("siren") == siren), None)
+            if existing:
+                return existing
+            _next_idx = max(_next_idx, len(enriched_targets)) + 1
+            target = build_target(idx=_next_idx, company_info=company_info, search_info={})
+            raw_targets.append(target)
+            enriched = enrich_target(target)
+            enriched_targets.append(enriched)
+            save_cache(raw_targets)
+            return enriched
     except Exception as e:
         print(f"[EdRCF] _add_company_to_targets error for {siren}: {e}")
         return None
@@ -1534,7 +1541,7 @@ def build_target_from_search(idx, search_result, search_context=None):
     if ca > 5e6:
         signals.append("big4_audit")
     # Always add establishment if multi-site
-    if effectif and "50" in str(effectif) or "100" in str(effectif) or "200" in str(effectif):
+    if effectif and any(s in str(effectif) for s in ("50", "100", "200")):
         signals.append("new_establishment")
     signals.append("press_regional")
     # Deduplicate and validate
@@ -1753,22 +1760,23 @@ async def copilot_query(q: str = Query(...)):
                 pappers_context = "\n".join(pappers_lines)
 
                 # --- MERGE new results into existing targets (don't replace) ---
-                existing_sirens = {t.get("siren") for t in enriched_targets}
-                added_count = 0
-                for idx, r in enumerate(resultats):
-                    siren = r.get("siren", "")
-                    if not siren or siren in existing_sirens:
-                        continue
-                    existing_sirens.add(siren)
-                    new_target = build_target_from_search(len(enriched_targets) + added_count + 1, r, pappers_filters)
-                    raw_targets.append(new_target)
-                    enriched_targets.append(enrich_target(new_target))
-                    added_count += 1
+                async with _targets_lock:
+                    existing_sirens = {t.get("siren") for t in enriched_targets}
+                    added_count = 0
+                    for idx, r in enumerate(resultats):
+                        siren = r.get("siren", "")
+                        if not siren or siren in existing_sirens:
+                            continue
+                        existing_sirens.add(siren)
+                        new_target = build_target_from_search(len(enriched_targets) + added_count + 1, r, pappers_filters)
+                        raw_targets.append(new_target)
+                        enriched_targets.append(enrich_target(new_target))
+                        added_count += 1
 
-                if added_count:
-                    enriched_targets.sort(key=lambda x: x["globalScore"], reverse=True)
-                    save_cache(raw_targets)
-                    targets_updated = True
+                    if added_count:
+                        enriched_targets.sort(key=lambda x: x["globalScore"], reverse=True)
+                        save_cache(raw_targets)
+                        targets_updated = True
                     print(f"[Copilot] Added {added_count} targets from Pappers (total: {len(enriched_targets)})")
 
         except Exception as e:
@@ -1833,7 +1841,7 @@ async def copilot_query(q: str = Query(...)):
         return {"response": ai_response, "source": source, "targets_updated": targets_updated}
 
     # Fallback: rule-based copilot
-    time.sleep(0.5)
+    await asyncio.sleep(0.3)
     ql = q.lower()
 
     # --- Smart matching on specific targets ---
@@ -2273,7 +2281,12 @@ def get_graph():
 
         # Subsidiary nodes — up to 3 per target
         for i, sub in enumerate(entreprises_liees[:3]):
-            sub_name = sub.get("denomination") or sub.get("name") or f"Filiale {i+1}"
+            if isinstance(sub, str):
+                sub_name = sub or f"Filiale {i+1}"
+            elif isinstance(sub, dict):
+                sub_name = sub.get("denomination") or sub.get("name") or f"Filiale {i+1}"
+            else:
+                sub_name = f"Filiale {i+1}"
             sub_id = f"{t['id']}-sub-{i}"
             nodes.append({
                 "id": sub_id,

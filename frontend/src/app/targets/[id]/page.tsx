@@ -94,12 +94,12 @@ export default function TargetDetail() {
         if (siren) {
           setNewsLoading(true);
           fetch(`/api/news/${siren}`)
-            .then(r => r.json())
+            .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
             .then(d => { setNews(d.data?.articles || []); setNewsLoading(false); })
             .catch(() => setNewsLoading(false));
           setActesLoading(true);
           fetch(`/api/infogreffe/${siren}`)
-            .then(r => r.json())
+            .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
             .then(d => { setActes(d.data?.actes || []); setActesLoading(false); })
             .catch(() => setActesLoading(false));
         }

@@ -30,8 +30,11 @@ export interface ScoringDimension {
 // ── Group Info ─────────────────────────────────────────────────────
 export interface GroupInfo {
   is_group: boolean;
+  is_holding?: boolean;
   parent: string | null;
   subsidiaries: string[];
+  nb_etablissements?: number;
+  procedure_collective_en_cours?: boolean;
   consolidated_revenue: string | null;
 }
 
@@ -86,18 +89,20 @@ export interface Target {
   code_naf: string;
   creation_date: string;
   structure: string; // "Familiale" | "PE-backed" | "Groupe côté"
+  statut_activite?: string;
+  date_cessation?: string | null;
   publication_status: string; // "Publie" | "Ne publie pas"
   globalScore: number;
   priorityLevel: string; // "Action Prioritaire" | "Qualification" | "Monitoring" | "Veille Passive"
   dirigeants: Dirigeant[];
   financials: Financials;
-  scoring_details: Record<string, ScoringDimension>;
+  scoring_details?: Record<string, ScoringDimension>;
   topSignals: Signal[];
-  group: GroupInfo;
-  relationship: Relationship;
-  analysis: TargetAnalysis;
-  activation: Activation;
-  risks: Risks;
+  group?: GroupInfo;
+  relationship?: Relationship;
+  analysis?: TargetAnalysis;
+  activation?: Activation;
+  risks?: Risks;
 }
 
 // ── Filter Options (returned by API) ───────────────────────────────
