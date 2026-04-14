@@ -238,7 +238,7 @@ async def call_pappers_mcp(tool_name: str, arguments: dict, retries: int = 1):
         return None
     for attempt in range(retries):
         try:
-            async with httpx.AsyncClient(timeout=45) as client:
+            async with httpx.AsyncClient(timeout=55) as client:
                 resp = await client.post(
                     PAPPERS_MCP_URL,
                     headers={"Content-Type": "application/json", "Accept": "application/json, text/event-stream"},
