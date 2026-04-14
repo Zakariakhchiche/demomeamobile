@@ -91,11 +91,15 @@ def _resolve_pappers_url() -> str:
     url = os.getenv("PAPPERS_MCP_URL", "")
     if url:
         return url
-    # Fallback: read from .mcp.json (project root)
-    for mcp_path in [
-        os.path.join(os.path.dirname(__file__), "..", ".mcp.json"),
-        os.path.join(os.path.dirname(__file__), ".mcp.json"),
-    ]:
+    # Fallback: read from .mcp.json (project root or backend dir)
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    search_paths = [
+        os.path.join(base_dir, "..", ".mcp.json"),
+        os.path.join(base_dir, ".mcp.json"),
+        os.path.join(os.getcwd(), ".mcp.json"),
+        "/.mcp.json",
+    ]
+    for mcp_path in search_paths:
         try:
             if os.path.exists(mcp_path):
                 with open(mcp_path, "r") as f:
@@ -105,7 +109,8 @@ def _resolve_pappers_url() -> str:
                     print(f"[EdRCF] Pappers MCP URL loaded from {mcp_path}")
                     return url
         except Exception as e:
-            print(f"[EdRCF] .mcp.json read error: {e}")
+            print(f"[EdRCF] .mcp.json read error ({mcp_path}): {e}")
+    print(f"[EdRCF] WARNING: PAPPERS_MCP_URL not found. Searched: {search_paths}")
     return ""
 
 
