@@ -721,28 +721,33 @@ async def copilot_ai_query(query: str, context: str):
 @app.get("/api/health")
 async def health_check():
     """Diagnostic endpoint — checks Pappers MCP connectivity."""
+    import time
     pappers_status = "not_configured"
     pappers_error = None
+    pappers_time_ms = 0
     if PAPPERS_MCP_URL:
+        t0 = time.time()
         try:
-            async with httpx.AsyncClient(timeout=8) as client:
+            async with httpx.AsyncClient(timeout=30) as client:
                 resp = await client.post(
                     PAPPERS_MCP_URL,
-                    headers={"Content-Type": "application/json", "Accept": "application/json"},
-                    json={"jsonrpc": "2.0", "id": 1, "method": "initialize",
-                          "params": {"protocolVersion": "2025-03-26",
-                                     "clientInfo": {"name": "edrcf", "version": "6.0"},
-                                     "capabilities": {}}},
+                    headers={"Content-Type": "application/json", "Accept": "application/json, text/event-stream"},
+                    json={"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}},
                 )
+                pappers_time_ms = int((time.time() - t0) * 1000)
                 pappers_status = f"http_{resp.status_code}"
+                if resp.status_code == 200:
+                    pappers_status = "ok"
         except Exception as e:
+            pappers_time_ms = int((time.time() - t0) * 1000)
             pappers_status = "error"
-            pappers_error = str(e)
+            pappers_error = f"{type(e).__name__}: {e}"
     return {
         "status": "ok",
         "pappers_mcp_url": PAPPERS_MCP_URL[:50] + "..." if PAPPERS_MCP_URL else "(empty)",
         "pappers_status": pappers_status,
         "pappers_error": pappers_error,
+        "pappers_time_ms": pappers_time_ms,
         "targets_count": len(enriched_targets),
     }
 
