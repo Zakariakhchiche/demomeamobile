@@ -232,41 +232,46 @@ async def _add_company_to_targets(siren: str) -> Optional[dict]:
 # ==========================================================================
 
 
-async def call_pappers_mcp(tool_name: str, arguments: dict):
-    """Call a Pappers MCP tool via the streamable HTTP MCP server."""
+async def call_pappers_mcp(tool_name: str, arguments: dict, retries: int = 2):
+    """Call a Pappers MCP tool via the streamable HTTP MCP server (with retry)."""
     if not PAPPERS_MCP_URL:
         return None
-    try:
-        async with httpx.AsyncClient(timeout=10) as client:
-            # MCP streamable HTTP: POST with JSON-RPC
-            resp = await client.post(
-                PAPPERS_MCP_URL,
-                headers={"Content-Type": "application/json", "Accept": "application/json, text/event-stream"},
-                json={
-                    "jsonrpc": "2.0",
-                    "id": 1,
-                    "method": "tools/call",
-                    "params": {"name": tool_name, "arguments": arguments},
-                },
-            )
-            if resp.status_code == 200:
-                content_type = resp.headers.get("content-type", "")
-                if "text/event-stream" in content_type:
-                    # Parse SSE response
-                    for line in resp.text.split("\n"):
-                        if line.startswith("data: "):
-                            data = json.loads(line[6:])
-                            if "result" in data:
-                                return data["result"]
-                    return None
-                else:
-                    data = resp.json()
-                    if "result" in data:
-                        return data["result"]
-                    return data
-            print(f"[Pappers MCP] HTTP {resp.status_code}: {resp.text[:200]}")
-    except Exception as e:
-        print(f"[Pappers MCP] Error: {e}")
+    for attempt in range(retries):
+        try:
+            async with httpx.AsyncClient(timeout=12) as client:
+                resp = await client.post(
+                    PAPPERS_MCP_URL,
+                    headers={"Content-Type": "application/json", "Accept": "application/json, text/event-stream"},
+                    json={
+                        "jsonrpc": "2.0",
+                        "id": 1,
+                        "method": "tools/call",
+                        "params": {"name": tool_name, "arguments": arguments},
+                    },
+                )
+                if resp.status_code == 200:
+                    content_type = resp.headers.get("content-type", "")
+                    if "text/event-stream" in content_type:
+                        for line in resp.text.split("\n"):
+                            if line.startswith("data: "):
+                                data = json.loads(line[6:])
+                                if "result" in data:
+                                    return data["result"]
+                        return None
+                    else:
+                        data = resp.json()
+                        if "result" in data:
+                            return data["result"]
+                        return data
+                print(f"[Pappers MCP] HTTP {resp.status_code}: {resp.text[:200]}")
+        except (httpx.TimeoutException, httpx.ConnectError) as e:
+            print(f"[Pappers MCP] Attempt {attempt + 1}/{retries} failed: {e}")
+            if attempt < retries - 1:
+                await asyncio.sleep(1)
+                continue
+        except Exception as e:
+            print(f"[Pappers MCP] Error: {e}")
+            break
     return None
 
 
@@ -1745,8 +1750,12 @@ async def copilot_query(q: str = Query(...)):
     wants_pappers = any(w in ql for w in [
         "pappers", "screening", "screener", "scan", "prospecter", "nouvelles cibles",
         "open data", "pme", "eti",
-        "ca superieur", "chiffre affaires",
+        "ca superieur", "chiffre affaires", "chiffre d'affaires",
         "salarie", "salarié", "effectif",
+        "societe", "société", "sociétés", "entreprise",
+        "filiale", "filiales", "groupe",
+        "basee", "basées", "siege social", "siège social",
+        "entre", "realisant", "réalisant",
     ])
 
     # Sector → NAF code mapping (broad)
@@ -1754,7 +1763,12 @@ async def copilot_query(q: str = Query(...)):
         "courtage": "66.22Z", "assurance": "66.22Z",
         "industri": "25,28,29", "mecanique": "25.62A", "usinage": "25.62A",
         "logistique": "49.41A,52", "transport": "49.41A,49.41B",
+        "interim": "78.20Z", "intérim": "78.20Z", "travail temporaire": "78.20Z",
+        "recrutement": "78.10Z", "rh": "78.10Z",
         "medtech": "32.50A", "medical": "32.50A", "sante": "32.50A,86",
+        "dispositif medical": "32.50A", "consommable medical": "32.50A",
+        "batterie": "27.20Z", "accessoire medical": "32.50A",
+        "distribution medical": "46.46Z", "materiel medical": "46.46Z",
         "pharma": "21", "clinique": "86.10Z",
         "conseil": "70.22Z", "consulting": "70.22Z",
         "btp": "41.20A,41.20B", "construction": "41.20A,41.20B", "batiment": "41.20A",
@@ -1762,8 +1776,10 @@ async def copilot_query(q: str = Query(...)):
         "bar": "56.30Z", "hotel": "55.10Z", "hotellerie": "55.10Z",
         "energie": "35.11Z,43.21A", "solaire": "43.21A", "photovoltaique": "43.21A",
         "logiciel": "62.01Z", "saas": "62.01Z", "informatique": "62.01Z",
+        "tic": "62.01Z", "technologies de l'information": "62.01Z",
         "ia": "62.01Z", "intelligence artificielle": "62.01Z",
         "tech": "62.01Z", "numerique": "62.01Z", "digital": "62.01Z",
+        "esn": "62.01Z", "ssii": "62.01Z",
         "holding": "64.20Z", "immobilier": "68", "finance": "64",
         "luxe": "14.13Z", "mode": "14.13Z", "textile": "13",
         "automobile": "29.10Z", "aeronautique": "30.30Z",
@@ -1789,11 +1805,21 @@ async def copilot_query(q: str = Query(...)):
         wants_pappers = True
 
     # Detect financial filters from natural language
-    ca_match = re.search(r"(\d+)\s*(?:m€|m\b|millions?|meur)", ql)
-    if ca_match:
-        ca_val = int(ca_match.group(1)) * 1_000_000
-        pappers_filters["chiffre_affaires_min"] = str(ca_val)
+    # First try range: "entre X et Y M€"
+    ca_range = re.search(r"entre\s+(\d+)\s*(?:et|a|à)\s*(\d+)\s*(?:m€|m\b|millions?|meur)", ql)
+    if ca_range:
+        ca_min = int(ca_range.group(1)) * 1_000_000
+        ca_max = int(ca_range.group(2)) * 1_000_000
+        pappers_filters["chiffre_affaires_min"] = str(ca_min)
+        pappers_filters["chiffre_affaires_max"] = str(ca_max)
         wants_pappers = True
+    else:
+        # Fallback: single value "X M€"
+        ca_match = re.search(r"(\d+)\s*(?:m€|m\b|millions?|meur)", ql)
+        if ca_match:
+            ca_val = int(ca_match.group(1)) * 1_000_000
+            pappers_filters["chiffre_affaires_min"] = str(ca_val)
+            wants_pappers = True
 
     eff_match = re.search(r"(\d+)\s*(?:salari|employ|effectif)", ql)
     if eff_match:
