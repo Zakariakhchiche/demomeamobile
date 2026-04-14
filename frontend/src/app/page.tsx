@@ -32,7 +32,7 @@ import { Target, CfnewsTarget } from "@/types";
 
 export default function Home() {
   const { data, isLoading, error } = useTargets();
-  const { data: cfnewsData, isLoading: cfnewsLoading } = useCfnews(15);
+  const { data: cfnewsData, isLoading: cfnewsLoading, error: cfnewsError } = useCfnews(15);
   const queryClient = useQueryClient();
   const targets = data?.data || [];
   const cfnewsTargets = cfnewsData?.data || [];
@@ -580,6 +580,16 @@ export default function Home() {
                     <div className="h-2 w-full bg-white/5 rounded-full" />
                   </div>
                 ))}
+              </div>
+            ) : cfnewsError || cfnewsTargets.length === 0 ? (
+              <div className="py-6 text-center">
+                <Newspaper size={28} className="text-gray-600 mx-auto mb-3" />
+                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">
+                  {cfnewsError ? "Source temporairement indisponible" : "Aucune entreprise détectée"}
+                </p>
+                <p className="text-[9px] text-gray-600 mt-1">
+                  Actualisation automatique dans quelques minutes
+                </p>
               </div>
             ) : (
               <div className="space-y-5">

@@ -9,6 +9,8 @@ export function useCfnews(limite: number = 10) {
       if (!res.ok) throw new Error(`HTTP error: ${res.status}`);
       return res.json();
     },
-    staleTime: 5 * 60 * 1000, // 5 min — rafraîchir régulièrement pour la veille
+    staleTime: 5 * 60 * 1000,
+    retry: 2,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 10000),
   });
 }
