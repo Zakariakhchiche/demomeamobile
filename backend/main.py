@@ -232,13 +232,13 @@ async def _add_company_to_targets(siren: str) -> Optional[dict]:
 # ==========================================================================
 
 
-async def call_pappers_mcp(tool_name: str, arguments: dict, retries: int = 2):
-    """Call a Pappers MCP tool via the streamable HTTP MCP server (with retry)."""
+async def call_pappers_mcp(tool_name: str, arguments: dict, retries: int = 1):
+    """Call a Pappers MCP tool via the streamable HTTP MCP server."""
     if not PAPPERS_MCP_URL:
         return None
     for attempt in range(retries):
         try:
-            async with httpx.AsyncClient(timeout=12) as client:
+            async with httpx.AsyncClient(timeout=45) as client:
                 resp = await client.post(
                     PAPPERS_MCP_URL,
                     headers={"Content-Type": "application/json", "Accept": "application/json, text/event-stream"},
@@ -672,7 +672,7 @@ async def copilot_ai_query(query: str, context: str):
     if not DEEPSEEK_API_KEY:
         return None  # Fall back to rule-based
     try:
-        async with httpx.AsyncClient(timeout=15) as client:
+        async with httpx.AsyncClient(timeout=25) as client:
             resp = await client.post(
                 "https://api.deepseek.com/v1/chat/completions",
                 headers={
