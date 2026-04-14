@@ -1446,6 +1446,76 @@ async def get_news_for_company(siren: str):
     }
 
 
+# ==========================================================================
+# CFNEWS Veille – scraping actualités M&A
+# ==========================================================================
+
+@app.get("/api/cfnews")
+async def get_cfnews_actualites(
+    categorie: str = Query("", description="Filtrer par catégorie (ex: Capital innovation, M A Corporate)"),
+    limite: int = Query(20, ge=1, le=100, description="Nombre max d'articles"),
+):
+    """Récupère les dernières actualités M&A depuis CFNEWS.net (scraping page d'accueil)."""
+    from mcp_cfnews import _fetch_page, _extract_articles, CFNEWS_BASE_URL
+
+    loop = asyncio.get_event_loop()
+    soup = await loop.run_in_executor(None, _fetch_page, CFNEWS_BASE_URL)
+    if soup is None:
+        raise HTTPException(status_code=502, detail="Impossible de charger cfnews.net")
+
+    articles = _extract_articles(soup)
+    if categorie:
+        cat_lower = categorie.lower()
+        articles = [a for a in articles if cat_lower in a["categorie"].lower()]
+
+    return {"data": articles[:limite], "total": len(articles)}
+
+
+@app.get("/api/cfnews/entreprises")
+async def get_cfnews_entreprises():
+    """Liste les entreprises mentionnées dans les titres d'actualité CFNEWS du jour."""
+    from mcp_cfnews import _fetch_page, _extract_articles, CFNEWS_BASE_URL
+
+    loop = asyncio.get_event_loop()
+    soup = await loop.run_in_executor(None, _fetch_page, CFNEWS_BASE_URL)
+    if soup is None:
+        raise HTTPException(status_code=502, detail="Impossible de charger cfnews.net")
+
+    articles = _extract_articles(soup)
+    seen = set()
+    entreprises = []
+    for a in articles:
+        name = a["entreprise"]
+        if name and name not in seen:
+            seen.add(name)
+            entreprises.append({
+                "entreprise": name,
+                "categorie": a["categorie"],
+                "titre": a["titre"],
+                "url": a["url"],
+            })
+    return {"data": entreprises, "total": len(entreprises)}
+
+
+@app.get("/api/cfnews/recherche/{nom}")
+async def recherche_cfnews(nom: str):
+    """Recherche une entreprise dans les actualités CFNEWS."""
+    from mcp_cfnews import _fetch_page, _extract_articles, CFNEWS_BASE_URL
+
+    loop = asyncio.get_event_loop()
+    soup = await loop.run_in_executor(None, _fetch_page, CFNEWS_BASE_URL)
+    if soup is None:
+        raise HTTPException(status_code=502, detail="Impossible de charger cfnews.net")
+
+    articles = _extract_articles(soup)
+    nom_lower = nom.lower()
+    results = [
+        a for a in articles
+        if nom_lower in a["titre"].lower() or nom_lower in a.get("entreprise", "").lower()
+    ]
+    return {"data": results, "total": len(results)}
+
+
 @app.get("/api/infogreffe/{siren}")
 async def get_infogreffe_endpoint(siren: str):
     """
