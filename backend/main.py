@@ -718,6 +718,36 @@ async def copilot_ai_query(query: str, context: str):
 # ==========================================================================
 
 
+@app.get("/api/health")
+async def health_check():
+    """Diagnostic endpoint — checks Pappers MCP connectivity."""
+    pappers_status = "not_configured"
+    pappers_error = None
+    if PAPPERS_MCP_URL:
+        try:
+            async with httpx.AsyncClient(timeout=8) as client:
+                resp = await client.post(
+                    PAPPERS_MCP_URL,
+                    headers={"Content-Type": "application/json", "Accept": "application/json"},
+                    json={"jsonrpc": "2.0", "id": 1, "method": "initialize",
+                          "params": {"protocolVersion": "2025-03-26",
+                                     "clientInfo": {"name": "edrcf", "version": "6.0"},
+                                     "capabilities": {}}},
+                )
+                pappers_status = f"http_{resp.status_code}"
+        except Exception as e:
+            pappers_status = "error"
+            pappers_error = str(e)
+    return {
+        "status": "ok",
+        "pappers_mcp_url": PAPPERS_MCP_URL[:50] + "..." if PAPPERS_MCP_URL else "(empty)",
+        "pappers_status": pappers_status,
+        "pappers_error": pappers_error,
+        "targets_count": len(enriched_targets),
+    }
+
+
+
 @app.get("/api/targets")
 def get_targets(
     q: Optional[str] = Query(None),
