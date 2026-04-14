@@ -237,7 +237,7 @@ async def call_pappers_mcp(tool_name: str, arguments: dict):
     if not PAPPERS_MCP_URL:
         return None
     try:
-        async with httpx.AsyncClient(timeout=30) as client:
+        async with httpx.AsyncClient(timeout=10) as client:
             # MCP streamable HTTP: POST with JSON-RPC
             resp = await client.post(
                 PAPPERS_MCP_URL,
@@ -667,7 +667,7 @@ async def copilot_ai_query(query: str, context: str):
     if not DEEPSEEK_API_KEY:
         return None  # Fall back to rule-based
     try:
-        async with httpx.AsyncClient(timeout=30) as client:
+        async with httpx.AsyncClient(timeout=15) as client:
             resp = await client.post(
                 "https://api.deepseek.com/v1/chat/completions",
                 headers={
@@ -1854,20 +1854,40 @@ async def copilot_query(q: str = Query(...)):
             print(f"[Copilot] Pappers enrichment error: {e}")
 
     # --- Direct company name search (short query, no trigger keywords, likely a company name) ---
+    # Strip common conversational prefixes to extract the company name
+    _strip_prefixes = [
+        "parle moi de ", "parle-moi de ", "cherche ", "trouve ", "recherche ",
+        "dis moi tout sur ", "dis-moi tout sur ", "analyse ", "montre moi ",
+        "montre-moi ", "info sur ", "infos sur ", "information sur ",
+        "informations sur ", "fiche de ", "fiche ", "dossier ",
+        "qu est ce que ", "c est quoi ", "qui est ",
+    ]
+    search_query = ql.strip()
+    for prefix in _strip_prefixes:
+        if search_query.startswith(prefix):
+            search_query = search_query[len(prefix):].strip()
+            break
+    # Also strip trailing question marks and articles
+    search_query = search_query.rstrip("? ").strip()
+    for article in ["l'", "la ", "le ", "les ", "l ", "un ", "une ", "des "]:
+        if search_query.startswith(article):
+            search_query = search_query[len(article):].strip()
+            break
+
     is_company_name_search = (
         not wants_pappers
         and not siren_match
-        and len(ql.strip()) >= 2
-        and len(ql.split()) <= 5
+        and len(search_query) >= 2
+        and len(search_query.split()) <= 5
         and PAPPERS_MCP_URL
     )
     if is_company_name_search:
         try:
-            pappers_result = await search_pappers(q)
+            pappers_result = await search_pappers(search_query)
             if isinstance(pappers_result, dict) and pappers_result.get("resultats"):
                 resultats = pappers_result["resultats"][:5]
                 total = pappers_result.get("total", len(resultats))
-                lines = [f"**Recherche Pappers pour \"{q}\" — {total} résultat(s) :**\n"]
+                lines = [f"**Recherche Pappers pour \"{search_query}\" — {total} résultat(s) :**\n"]
                 for r in resultats:
                     nom = r.get("nom_entreprise", "N/A")
                     siren_r = r.get("siren", "")
