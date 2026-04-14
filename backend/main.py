@@ -11,9 +11,10 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Body
 from fastapi.middleware.cors import CORSMiddleware
-from typing import Dict, Any, Optional
+from pydantic import BaseModel
+from typing import Dict, Any, Optional, List
 import asyncio
 import copy
 import json
@@ -1427,16 +1428,33 @@ def get_signals(severity: Optional[str] = Query(None)):
     return {"data": signals_feed, "total": len(signals_feed), "catalog": SIGNAL_CATALOG}
 
 
+# In-memory pipeline stage overrides: card_id -> stage_id
+_pipeline_overrides: Dict[str, str] = {}
+
+PIPELINE_STAGES = [
+    {"id": "origination", "title": "Origination", "color": "indigo"},
+    {"id": "qualification", "title": "Qualification", "color": "purple"},
+    {"id": "pitch", "title": "Pitch", "color": "amber"},
+    {"id": "execution", "title": "Execution", "color": "emerald"},
+    {"id": "closing", "title": "Closing", "color": "green"},
+]
+
+
+def _default_stage(score: float) -> str:
+    """Determine default pipeline stage based on score."""
+    if score >= 65:
+        return "qualification"
+    elif score >= 45:
+        return "origination"
+    return ""
+
+
 @app.get("/api/pipeline")
 def get_pipeline():
-    """5 M&A stages pipeline"""
-    pipeline = [
-        {"id": "origination", "title": "Origination", "color": "indigo", "cards": []},
-        {"id": "qualification", "title": "Qualification", "color": "purple", "cards": []},
-        {"id": "pitch", "title": "Pitch", "color": "amber", "cards": []},
-        {"id": "execution", "title": "Execution", "color": "emerald", "cards": []},
-        {"id": "closing", "title": "Closing", "color": "green", "cards": []},
-    ]
+    """5 M&A stages pipeline — respects user-moved cards."""
+    pipeline = [{"id": s["id"], "title": s["title"], "color": s["color"], "cards": []} for s in PIPELINE_STAGES]
+    stage_map = {s["id"]: s for s in pipeline}
+
     for t in enriched_targets:
         card = {
             "id": t["id"],
@@ -1448,23 +1466,31 @@ def get_pipeline():
             "window": t["analysis"]["window"],
             "ebitda": t["financials"]["ebitda"],
         }
-        if t["globalScore"] >= 65:
-            pipeline[1]["cards"].append(card)  # Qualification (already scored high)
-        elif t["globalScore"] >= 45:
-            pipeline[0]["cards"].append(card)  # Origination
+        # Use override if card was manually moved, otherwise use score-based default
+        stage_id = _pipeline_overrides.get(t["id"]) or _default_stage(t["globalScore"])
+        if stage_id and stage_id in stage_map:
+            stage_map[stage_id]["cards"].append(card)
 
     return {"data": pipeline}
 
 
+class PipelineMoveRequest(BaseModel):
+    card_id: str
+    from_stage: str
+    to_stage: str
+    new_index: int = 0
+
+
 @app.post("/api/pipeline/move")
-def move_pipeline_card(
-    card_id: str = Query(...),
-    from_stage: str = Query(...),
-    to_stage: str = Query(...),
-):
+def move_pipeline_card(req: PipelineMoveRequest):
+    """Move a card between pipeline stages. Persists the override in memory."""
+    valid_stages = {s["id"] for s in PIPELINE_STAGES}
+    if req.to_stage not in valid_stages:
+        raise HTTPException(400, f"Stage invalide: {req.to_stage}")
+    _pipeline_overrides[req.card_id] = req.to_stage
     return {
         "success": True,
-        "message": f"Carte {card_id} deplacee de {from_stage} vers {to_stage}",
+        "message": f"Carte {req.card_id} deplacee de {req.from_stage} vers {req.to_stage}",
     }
 
 
