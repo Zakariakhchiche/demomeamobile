@@ -1497,6 +1497,152 @@ async def get_cfnews_entreprises():
     return {"data": entreprises, "total": len(entreprises)}
 
 
+@app.get("/api/cfnews/veille")
+async def cfnews_veille(limite: int = Query(10, ge=1, le=30)):
+    """
+    Agent de veille CFNEWS : scrape les titres, identifie les entreprises,
+    les recherche sur Pappers et retourne des targets scorées EdRCF.
+    """
+    from mcp_cfnews import _fetch_page, _extract_articles, CFNEWS_BASE_URL
+
+    loop = asyncio.get_event_loop()
+    soup = await loop.run_in_executor(None, _fetch_page, CFNEWS_BASE_URL)
+    if soup is None:
+        raise HTTPException(status_code=502, detail="Impossible de charger cfnews.net")
+
+    articles = _extract_articles(soup)
+
+    # Déduplication : garder une seule entrée par entreprise
+    seen = set()
+    unique_companies = []
+    for a in articles:
+        name = a.get("entreprise", "")
+        if name and name not in seen:
+            seen.add(name)
+            unique_companies.append(a)
+    unique_companies = unique_companies[:limite]
+
+    # Pour chaque entreprise, chercher sur Pappers et scorer
+    async def _enrich_company(article: dict) -> dict | None:
+        name = article["entreprise"]
+        try:
+            pappers_data = await asyncio.wait_for(
+                search_pappers(query=name, par_page="1"), timeout=8
+            )
+        except (asyncio.TimeoutError, Exception):
+            pappers_data = None
+
+        if not pappers_data or not isinstance(pappers_data, dict):
+            # Pas trouvé sur Pappers — retourner une carte minimale
+            return {
+                "id": f"cfnews-{article['id']}",
+                "siren": "",
+                "name": name,
+                "sector": article["categorie"].replace("_", " "),
+                "sub_sector": "",
+                "region": "",
+                "city": "",
+                "code_naf": "",
+                "creation_date": "",
+                "structure": "Inconnue",
+                "statut_activite": "En activite",
+                "publication_status": "N/A",
+                "globalScore": 0,
+                "priorityLevel": "Veille Passive",
+                "dirigeants": [],
+                "financials": {
+                    "revenue": "N/A", "revenue_growth": "N/A",
+                    "ebitda": "N/A", "ebitda_margin": "N/A",
+                    "ebitda_range": "N/A", "effectif": 0,
+                    "last_published_year": 0,
+                },
+                "topSignals": [],
+                "cfnews": {
+                    "titre": article["titre"],
+                    "categorie": article["categorie"],
+                    "url": article["url"],
+                    "date": article.get("date", ""),
+                },
+                "source": "cfnews-only",
+            }
+
+        resultats = pappers_data.get("resultats", [])
+        if not resultats:
+            return {
+                "id": f"cfnews-{article['id']}",
+                "siren": "",
+                "name": name,
+                "sector": article["categorie"].replace("_", " "),
+                "sub_sector": "",
+                "region": "",
+                "city": "",
+                "code_naf": "",
+                "creation_date": "",
+                "structure": "Inconnue",
+                "statut_activite": "En activite",
+                "publication_status": "N/A",
+                "globalScore": 0,
+                "priorityLevel": "Veille Passive",
+                "dirigeants": [],
+                "financials": {
+                    "revenue": "N/A", "revenue_growth": "N/A",
+                    "ebitda": "N/A", "ebitda_margin": "N/A",
+                    "ebitda_range": "N/A", "effectif": 0,
+                    "last_published_year": 0,
+                },
+                "topSignals": [],
+                "cfnews": {
+                    "titre": article["titre"],
+                    "categorie": article["categorie"],
+                    "url": article["url"],
+                    "date": article.get("date", ""),
+                },
+                "source": "cfnews-only",
+            }
+
+        # On a un résultat Pappers — enrichir avec build_target
+        first = resultats[0]
+        siren = first.get("siren", "")
+
+        # Tenter d'obtenir les infos détaillées
+        try:
+            company_info = await asyncio.wait_for(
+                get_pappers_company(siren), timeout=8
+            )
+        except (asyncio.TimeoutError, Exception):
+            company_info = None
+
+        if company_info and isinstance(company_info, dict) and "siren" in company_info:
+            target = build_target(0, company_info, first)
+        else:
+            # Fallback : construire depuis search_info
+            target = build_target(0, first, first)
+
+        # Injecter les métadonnées CFNEWS
+        target["cfnews"] = {
+            "titre": article["titre"],
+            "categorie": article["categorie"],
+            "url": article["url"],
+            "date": article.get("date", ""),
+        }
+        target["source"] = "cfnews+pappers"
+        return target
+
+    # Exécuter les enrichissements en parallèle (max 10 concurrent)
+    tasks = [_enrich_company(c) for c in unique_companies]
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+
+    targets = []
+    for r in results:
+        if isinstance(r, dict):
+            targets.append(r)
+
+    # Trier par score décroissant
+    targets.sort(key=lambda t: t.get("globalScore", 0), reverse=True)
+
+    return {"data": targets, "total": len(targets), "source": "cfnews-veille"}
+
+
 @app.get("/api/cfnews/recherche/{nom}")
 async def recherche_cfnews(nom: str):
     """Recherche une entreprise dans les actualités CFNEWS."""

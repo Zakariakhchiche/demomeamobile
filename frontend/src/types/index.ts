@@ -147,6 +147,27 @@ export interface SearchResult {
   path: string;
 }
 
+// ── CFNEWS Article (from scraper) ──────────────────────────────────
+export interface CfnewsMeta {
+  titre: string;
+  categorie: string;
+  url: string;
+  date: string;
+}
+
+// ── CFNEWS Veille Target (enriched with Pappers) ──────────────────
+export interface CfnewsTarget extends Target {
+  cfnews?: CfnewsMeta;
+  source?: string;
+}
+
+// ── CFNEWS Veille API Response ────────────────────────────────────
+export interface CfnewsVeilleResponse {
+  data: CfnewsTarget[];
+  total: number;
+  source: string;
+}
+
 // ── Copilot Message ────────────────────────────────────────────────
 export interface Message {
   role: "user" | "assistant";

@@ -18,23 +18,30 @@ import {
   Radio,
   Sparkles,
   BarChart3,
+  Newspaper,
+  ExternalLink,
+  X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { SkeletonCard, SkeletonKPI } from "@/components/LoadingSkeleton";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTargets } from "@/lib/queries/useTargets";
+import { useCfnews } from "@/lib/queries/useCfnews";
 
-import { Target } from "@/types";
+import { Target, CfnewsTarget } from "@/types";
 
 export default function Home() {
   const { data, isLoading, error } = useTargets();
+  const { data: cfnewsData, isLoading: cfnewsLoading } = useCfnews(15);
   const queryClient = useQueryClient();
   const targets = data?.data || [];
+  const cfnewsTargets = cfnewsData?.data || [];
   const loading = isLoading;
   const fetchError = !!error;
 
   const [processingAction, setProcessingAction] = useState<string | null>(null);
   const [notification, setNotification] = useState<string | null>(null);
+  const [cfnewsOpen, setCfnewsOpen] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -535,6 +542,101 @@ export default function Home() {
             </div>
           </div>
 
+          {/* ── CFNEWS Veille Widget ─────────────────────────── */}
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="p-6 sm:p-10 rounded-[2rem] sm:rounded-[3rem] bg-black/40 border border-white/10 lg:backdrop-blur-3xl shadow-2xl"
+          >
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="text-[11px] font-black text-white uppercase tracking-[0.3em] flex items-center gap-3">
+                <Newspaper size={18} className="text-amber-400" /> CFNEWS Veille
+              </h2>
+              <div className="flex items-center gap-2">
+                {cfnewsLoading && (
+                  <div className="w-3 h-3 border-2 border-amber-500/20 border-t-amber-500 rounded-full animate-spin" />
+                )}
+                <span className="text-[9px] font-black text-amber-400 px-2 py-0.5 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                  {cfnewsTargets.length} entreprises
+                </span>
+              </div>
+            </div>
+
+            {cfnewsLoading ? (
+              <div className="space-y-4">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="animate-pulse">
+                    <div className="flex justify-between items-center mb-2">
+                      <div className="h-3 w-28 bg-white/5 rounded-lg" />
+                      <div className="h-3 w-8 bg-white/5 rounded-lg" />
+                    </div>
+                    <div className="h-2 w-full bg-white/5 rounded-full" />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {cfnewsTargets.slice(0, 5).map((ct, idx) => (
+                  <motion.div
+                    key={ct.id || idx}
+                    initial={{ opacity: 0, x: 10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: idx * 0.05 }}
+                    className="group cursor-pointer"
+                    onClick={() => setCfnewsOpen(true)}
+                  >
+                    <div className="flex justify-between items-center mb-2 gap-2">
+                      <span className="text-[11px] font-black text-gray-400 group-hover:text-white transition-colors uppercase tracking-widest truncate min-w-0">
+                        {ct.name}
+                      </span>
+                      <span
+                        className={`text-[10px] font-black px-2 py-0.5 rounded-lg shrink-0 ${
+                          ct.globalScore >= 65
+                            ? "bg-emerald-500/10 text-emerald-400"
+                            : ct.globalScore >= 45
+                              ? "bg-indigo-500/10 text-indigo-400"
+                              : ct.globalScore >= 25
+                                ? "bg-amber-500/10 text-amber-400"
+                                : "bg-gray-500/10 text-gray-500"
+                        }`}
+                      >
+                        {ct.globalScore || "—"}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-[9px] font-bold text-gray-600 truncate">
+                        {ct.cfnews?.titre}
+                      </span>
+                    </div>
+                    <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden shadow-inner">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${Math.min(ct.globalScore, 100)}%` }}
+                        className={`h-full rounded-full ${
+                          ct.globalScore >= 65
+                            ? "bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.4)]"
+                            : ct.globalScore >= 45
+                              ? "bg-indigo-500 shadow-[0_0_12px_rgba(79,70,229,0.4)]"
+                              : ct.globalScore >= 25
+                                ? "bg-amber-500 shadow-[0_0_12px_rgba(245,158,11,0.4)]"
+                                : "bg-gray-600"
+                        }`}
+                      />
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            )}
+
+            <button
+              onClick={() => setCfnewsOpen(true)}
+              className="w-full mt-8 flex items-center justify-center gap-3 px-6 py-3 rounded-2xl bg-amber-500/5 border border-amber-500/10 text-[10px] font-black text-amber-400 uppercase tracking-widest hover:bg-amber-500/10 hover:border-amber-500/30 transition-all"
+            >
+              Voir toutes les entreprises <ChevronRight size={14} />
+            </button>
+          </motion.div>
+
           {/* Copilot Action Card */}
           <motion.button
             whileHover={{ y: -5 }}
@@ -565,6 +667,229 @@ export default function Home() {
           </motion.button>
         </div>
       </div>
+
+      {/* ── CFNEWS Veille Modal ──────────────────────────────────── */}
+      <AnimatePresence>
+        {cfnewsOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-start justify-center overflow-y-auto py-8 px-4"
+            onClick={() => setCfnewsOpen(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 30, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 20, scale: 0.97 }}
+              transition={{ duration: 0.3 }}
+              className="w-full max-w-5xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center gap-5">
+                  <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20">
+                    <Newspaper size={24} className="text-amber-400" />
+                  </div>
+                  <div>
+                    <h2 className="text-3xl font-black text-white tracking-tighter">
+                      Veille CFNEWS
+                    </h2>
+                    <p className="text-[11px] font-black text-gray-500 uppercase tracking-widest mt-1">
+                      {cfnewsTargets.length} entreprises détectées &middot; Scoring EdRCF temps réel
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setCfnewsOpen(false)}
+                  className="p-3 rounded-2xl bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 transition-all"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Cards Grid */}
+              <div className="flex flex-col gap-5">
+                {cfnewsTargets.map((target, idx) => (
+                  <motion.div
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: idx * 0.05 }}
+                    key={target.id || idx}
+                    className="group p-6 sm:p-8 rounded-[2rem] bg-black/60 border border-white/10 hover:border-amber-500/30 transition-all relative overflow-hidden backdrop-blur-xl shadow-2xl"
+                  >
+                    {/* Source badge */}
+                    <div className="absolute top-4 right-4 flex items-center gap-2">
+                      {target.source === "cfnews+pappers" && (
+                        <span className="text-[8px] font-black px-2 py-0.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 uppercase tracking-widest">
+                          Pappers
+                        </span>
+                      )}
+                      <span className="text-[8px] font-black px-2 py-0.5 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20 uppercase tracking-widest">
+                        CFNEWS
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between items-start gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-4 mb-4">
+                          <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 group-hover:text-amber-400 group-hover:bg-amber-500/10 group-hover:border-amber-500/30 transition-all shadow-xl shrink-0">
+                            <Building size={22} />
+                          </div>
+                          <div className="min-w-0">
+                            <h3 className="text-xl font-black text-white tracking-tighter group-hover:text-amber-400 transition-colors truncate">
+                              {target.name}
+                            </h3>
+                            <div className="flex gap-2 items-center mt-1 flex-wrap">
+                              <span className="px-2.5 py-0.5 rounded-lg text-[9px] font-black tracking-widest uppercase bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                                {target.sector || target.cfnews?.categorie}
+                              </span>
+                              {target.region && (
+                                <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest">
+                                  {target.region}
+                                </span>
+                              )}
+                              {target.siren && (
+                                <span className="text-[9px] font-black text-gray-600 uppercase tracking-widest">
+                                  {target.siren}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* CFNEWS headline */}
+                        {target.cfnews?.titre && (
+                          <a
+                            href={target.cfnews.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 text-[10px] font-bold text-amber-400/70 hover:text-amber-400 transition-colors mb-4 max-w-full"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Newspaper size={12} className="shrink-0" />
+                            <span className="truncate">{target.cfnews.titre}</span>
+                            <ExternalLink size={10} className="shrink-0" />
+                          </a>
+                        )}
+
+                        {/* Signals */}
+                        {target.topSignals && target.topSignals.length > 0 && (
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            {target.topSignals.slice(0, 4).map((signal) => (
+                              <div
+                                key={signal.id}
+                                className="px-3 py-1.5 rounded-xl bg-white/[0.03] text-gray-400 text-[10px] font-black uppercase tracking-widest flex items-center gap-2 border border-white/5"
+                              >
+                                <div className="w-1.5 h-1.5 rounded-full bg-indigo-500/50 shadow-[0_0_6px_rgba(79,70,229,0.5)] shrink-0" />
+                                <span className="truncate">{signal.label}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Score */}
+                      <div className="flex flex-col items-end shrink-0">
+                        <span
+                          className={`text-5xl font-black leading-none tracking-tighter bg-clip-text text-transparent bg-gradient-to-b ${
+                            target.globalScore >= 65
+                              ? "from-emerald-400 to-emerald-800"
+                              : target.globalScore >= 45
+                                ? "from-white to-gray-800"
+                                : target.globalScore >= 25
+                                  ? "from-amber-400 to-amber-800"
+                                  : "from-gray-400 to-gray-700"
+                          }`}
+                        >
+                          {target.globalScore || "—"}
+                        </span>
+                        <span className="text-[9px] uppercase tracking-[0.3em] text-amber-400/60 font-black mt-2">
+                          Score EdRCF
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Bottom info row */}
+                    {target.source === "cfnews+pappers" && (
+                      <div className="mt-6 pt-5 border-t border-white/[0.05] flex flex-wrap gap-6 sm:gap-10">
+                        {target.analysis?.type && (
+                          <div className="space-y-1">
+                            <span className="text-[9px] font-black text-gray-600 uppercase tracking-widest block">
+                              Type Probable
+                            </span>
+                            <span className="text-sm text-gray-200 font-bold tracking-tight">
+                              {target.analysis.type}
+                            </span>
+                          </div>
+                        )}
+                        {target.analysis?.window && (
+                          <div className="space-y-1">
+                            <span className="text-[9px] font-black text-gray-600 uppercase tracking-widest block">
+                              Fenêtre
+                            </span>
+                            <span className="text-sm text-gray-200 font-bold tracking-tight">
+                              {target.analysis.window}
+                            </span>
+                          </div>
+                        )}
+                        {target.financials?.ebitda && target.financials.ebitda !== "N/A" && (
+                          <div className="space-y-1">
+                            <span className="text-[9px] font-black text-gray-600 uppercase tracking-widest block">
+                              EBITDA
+                            </span>
+                            <span className="text-sm text-gray-200 font-bold tracking-tight">
+                              {target.financials.ebitda}
+                            </span>
+                          </div>
+                        )}
+                        {target.financials?.revenue && target.financials.revenue !== "N/A" && (
+                          <div className="space-y-1">
+                            <span className="text-[9px] font-black text-gray-600 uppercase tracking-widest block">
+                              CA
+                            </span>
+                            <span className="text-sm text-gray-200 font-bold tracking-tight">
+                              {target.financials.revenue}
+                            </span>
+                          </div>
+                        )}
+                        <div className="space-y-1">
+                          <span className="text-[9px] font-black text-gray-600 uppercase tracking-widest block">
+                            Priorité
+                          </span>
+                          <span
+                            className={`text-sm font-bold tracking-tight ${
+                              target.priorityLevel === "Action Prioritaire"
+                                ? "text-emerald-400"
+                                : target.priorityLevel === "Qualification"
+                                  ? "text-indigo-400"
+                                  : target.priorityLevel === "Monitoring"
+                                    ? "text-amber-400"
+                                    : "text-gray-400"
+                            }`}
+                          >
+                            {target.priorityLevel}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </motion.div>
+                ))}
+
+                {cfnewsTargets.length === 0 && !cfnewsLoading && (
+                  <div className="p-10 rounded-[2rem] bg-black/40 border border-white/10 text-center">
+                    <Newspaper size={40} className="text-gray-600 mx-auto mb-4" />
+                    <p className="text-gray-500 text-sm font-bold">
+                      Aucune entreprise détectée dans les actualités CFNEWS
+                    </p>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
