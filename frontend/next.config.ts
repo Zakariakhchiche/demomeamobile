@@ -14,10 +14,16 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   async rewrites() {
-    // Only proxy to localhost in development.
-    // In production (Vercel), vercel.json handles /api/* routing.
     if (process.env.NODE_ENV === "production") {
-      return [];
+      // In production on Vercel, proxy /api/* to the backend service.
+      // vercel.json also has this rewrite, but Next.js-level rewrite
+      // ensures it works even if vercel.json routing fails.
+      return [
+        {
+          source: "/api/:path*",
+          destination: "/_/backend/api/:path*",
+        },
+      ];
     }
     return [
       {

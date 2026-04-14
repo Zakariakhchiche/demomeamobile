@@ -88,10 +88,13 @@ export default function TargetsPage() {
 
   const router = useRouter();
 
-  // Re-fetch targets when copilot injects new ones from Pappers
+  // Re-fetch ALL data when copilot injects new targets from Pappers
   useEffect(() => {
     const handleTargetsUpdated = () => {
       queryClient.invalidateQueries({ queryKey: ["targets"] });
+      queryClient.invalidateQueries({ queryKey: ["pipeline"] });
+      queryClient.invalidateQueries({ queryKey: ["signals"] });
+      queryClient.invalidateQueries({ queryKey: ["graph"] });
     };
     window.addEventListener("targets-updated", handleTargetsUpdated);
     return () => window.removeEventListener("targets-updated", handleTargetsUpdated);
