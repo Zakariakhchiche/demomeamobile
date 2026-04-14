@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Sparkles, Send, X, Minimize2, Maximize2,
@@ -90,6 +91,7 @@ export default function GlobalCopilot() {
   const [isLoading, setIsLoading] = useState(false);
   const pathname = usePathname();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -125,8 +127,23 @@ export default function GlobalCopilot() {
       if (!res.ok) throw new Error("Connexion API echouee");
       const data = await res.json();
 
-      // If copilot injected new targets, notify dashboard to refresh
-      if (data.targets_updated) {
+      // If copilot injected new targets, seed the React Query cache directly
+      // (on Vercel serverless, the /api/targets instance may be different)
+      if (data.targets_updated && data.all_targets) {
+        const targets = data.all_targets;
+        queryClient.setQueryData(["targets"], {
+          data: targets,
+          total: targets.length,
+          filters: {
+            sectors: [...new Set(targets.map((t: Record<string, string>) => t.sector))].sort(),
+            regions: [...new Set(targets.map((t: Record<string, string>) => t.region))].sort(),
+            structures: [...new Set(targets.map((t: Record<string, string>) => t.structure))].sort(),
+            ebitda_ranges: ["< 3M", "3-10M", "10-30M", "> 30M"],
+          },
+        });
+        // Also notify all pages to re-render
+        window.dispatchEvent(new CustomEvent("targets-updated"));
+      } else if (data.targets_updated) {
         window.dispatchEvent(new CustomEvent("targets-updated"));
       }
 

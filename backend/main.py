@@ -1700,6 +1700,7 @@ async def copilot_query(q: str = Query(...)):
                     "response": "\n".join(resp_lines),
                     "source": "pappers-mcp",
                     "targets_updated": True,
+                    "all_targets": enriched_targets,
                 }
             else:
                 return {
@@ -1868,6 +1869,7 @@ async def copilot_query(q: str = Query(...)):
                     "response": "\n".join(lines),
                     "source": "pappers-mcp",
                     "targets_updated": bool(add_tasks),
+                    "all_targets": enriched_targets if add_tasks else None,
                 }
         except Exception as e:
             print(f"[Copilot] Company name search error: {e}")
@@ -1878,7 +1880,12 @@ async def copilot_query(q: str = Query(...)):
     ai_response = await copilot_ai_query(q, full_context)
     if ai_response:
         source = "deepseek-ai+pappers" if pappers_context else "deepseek-ai"
-        return {"response": ai_response, "source": source, "targets_updated": targets_updated}
+        return {
+            "response": ai_response,
+            "source": source,
+            "targets_updated": targets_updated,
+            "all_targets": enriched_targets if targets_updated else None,
+        }
 
     # Fallback: rule-based copilot
     await asyncio.sleep(0.3)
