@@ -1838,7 +1838,6 @@ async def copilot_query(q: str = Query(...)):
                 resultats = pappers_result["resultats"][:5]
                 total = pappers_result.get("total", len(resultats))
                 lines = [f"**Recherche Pappers pour \"{q}\" — {total} résultat(s) :**\n"]
-                add_tasks = []
                 for r in resultats:
                     nom = r.get("nom_entreprise", "N/A")
                     siren_r = r.get("siren", "")
@@ -1859,17 +1858,30 @@ async def copilot_query(q: str = Query(...)):
                     for rep in reps_r[:1]:
                         lines.append(f"  Dirigeant : {(rep.get('prenom') or '')} {(rep.get('nom') or '')} — {rep.get('qualite', '')}")
                     lines.append("")
-                    if siren_r:
-                        add_tasks.append(_add_company_to_targets(siren_r))
                 lines.append("*Source : Pappers MCP — données open data*")
-                # Add found companies to targets in background
-                if add_tasks:
-                    await asyncio.gather(*add_tasks, return_exceptions=True)
+                # Build targets directly from search results (don't rely on 2nd Pappers call)
+                async with _targets_lock:
+                    existing_sirens = {t.get("siren") for t in enriched_targets}
+                    added_count = 0
+                    for idx, r in enumerate(resultats):
+                        siren_r = r.get("siren", "")
+                        if not siren_r or siren_r in existing_sirens:
+                            continue
+                        existing_sirens.add(siren_r)
+                        new_target = build_target_from_search(len(enriched_targets) + added_count + 1, r, {})
+                        raw_targets.append(new_target)
+                        enriched_targets.append(enrich_target(new_target))
+                        added_count += 1
+                    if added_count:
+                        enriched_targets.sort(key=lambda x: x["globalScore"], reverse=True)
+                        save_cache(raw_targets)
+                        targets_updated = True
+                    print(f"[Copilot] Name search: added {added_count} targets (total: {len(enriched_targets)})")
                 return {
                     "response": "\n".join(lines),
                     "source": "pappers-mcp",
-                    "targets_updated": bool(add_tasks),
-                    "all_targets": enriched_targets if add_tasks else None,
+                    "targets_updated": targets_updated or added_count > 0,
+                    "all_targets": enriched_targets if (targets_updated or added_count > 0) else None,
                 }
         except Exception as e:
             print(f"[Copilot] Company name search error: {e}")
