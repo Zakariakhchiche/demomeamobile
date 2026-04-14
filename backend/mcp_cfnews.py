@@ -32,20 +32,27 @@ mcp = FastMCP(
 )
 
 
-def _fetch_page(url: str) -> BeautifulSoup | None:
-    """Récupère et parse une page HTML."""
-    try:
-        resp = requests.get(url, headers=HEADERS, timeout=15)
-        resp.raise_for_status()
-        resp.encoding = resp.apparent_encoding
-        return BeautifulSoup(resp.text, "html.parser")
-    except requests.RequestException as e:
-        logger.error("Erreur fetch %s : %s", url, e)
-        return None
+def _fetch_page(url: str, retries: int = 2) -> BeautifulSoup | None:
+    """Récupère et parse une page HTML avec retry sur erreur 503."""
+    import time
+    for attempt in range(retries + 1):
+        try:
+            resp = requests.get(url, headers=HEADERS, timeout=15)
+            resp.raise_for_status()
+            resp.encoding = resp.apparent_encoding
+            return BeautifulSoup(resp.text, "html.parser")
+        except requests.RequestException as e:
+            logger.error("Erreur fetch %s (tentative %d) : %s", url, attempt + 1, e)
+            if attempt < retries and "503" in str(e):
+                time.sleep(2 * (attempt + 1))
+                continue
+            return None
 
 
-def _extract_articles(soup: BeautifulSoup) -> list[dict]:
+def _extract_articles(soup: BeautifulSoup | None) -> list[dict]:
     """Extrait les articles depuis la page d'accueil cfnews."""
+    if soup is None:
+        return []
     articles = []
     seen_titles = set()
 

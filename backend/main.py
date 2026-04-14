@@ -691,12 +691,15 @@ async def copilot_ai_query(query: str, context: str):
                                 "pour Edmond de Rothschild Corporate Finance. Reponds en francais, "
                                 "de maniere concise et professionnelle. Utilise le markdown pour "
                                 "formater tes reponses (gras, listes, tableaux).\n\n"
-                                "Tu as acces a deux sources de donnees:\n"
+                                "Tu as acces a trois sources de donnees:\n"
                                 "1. Base interne EdRCF: cibles pre-scorees avec signaux M&A\n"
-                                "2. Pappers (open data): donnees legales/financieres de toutes les entreprises francaises\n\n"
+                                "2. Pappers (open data): donnees legales/financieres de toutes les entreprises francaises\n"
+                                "3. CFNEWS (scraping): actualites M&A du jour (titres, entreprises, categories)\n\n"
                                 "Quand le contexte contient des 'Donnees Pappers', analyse-les "
                                 "en croisant avec les criteres EdRCF (age dirigeant, CA, secteur en consolidation, "
-                                "structure holding, etc.) pour identifier les meilleures opportunites M&A.\n\n"
+                                "structure holding, etc.) pour identifier les meilleures opportunites M&A.\n"
+                                "Quand le contexte contient des 'Donnees CFNEWS', analyse les entreprises "
+                                "mentionnees dans la presse M&A et croise avec les cibles EdRCF existantes.\n\n"
                                 f"Contexte:\n{context}"
                             ),
                         },
@@ -1997,6 +2000,62 @@ async def copilot_query(q: str = Query(...)):
         except Exception as e:
             print(f"[Copilot] SIREN lookup error: {e}")
 
+    # --- CFNEWS veille intent detection ---
+    wants_cfnews = any(w in ql for w in [
+        "cfnews", "veille", "actualité", "actualite", "actus", "news",
+        "presse", "article", "dernières nouvelles", "dernieres nouvelles",
+        "qui fait l'actu", "actu m&a", "actu ma",
+    ])
+
+    if wants_cfnews:
+        try:
+            from mcp_cfnews import _fetch_page, _extract_articles, CFNEWS_BASE_URL
+
+            loop = asyncio.get_event_loop()
+            soup = await loop.run_in_executor(None, _fetch_page, CFNEWS_BASE_URL)
+            if soup:
+                articles = _extract_articles(soup)
+                companies = [a for a in articles if a.get("entreprise")][:15]
+
+                lines = [f"**Veille CFNEWS — {len(companies)} entreprises détectées :**\n"]
+                for i, a in enumerate(companies, 1):
+                    lines.append(
+                        f"{i}. **{a['entreprise']}** — _{a['titre']}_\n"
+                        f"   Catégorie : {a['categorie']} | "
+                        f"[Lire l'article]({a['url']})"
+                    )
+
+                # Enrichir avec le contexte pour DeepSeek
+                cfnews_context = (
+                    "\n\nDonnees CFNEWS (actualites M&A du jour):\n"
+                    + "\n".join(
+                        f"- {a['entreprise']}: {a['titre']} ({a['categorie']})"
+                        for a in companies
+                    )
+                )
+                full_context_cfnews = context + cfnews_context
+
+                # Tenter DeepSeek pour une analyse enrichie
+                ai_response = await copilot_ai_query(q, full_context_cfnews)
+                if ai_response:
+                    return {
+                        "response": ai_response,
+                        "source": "deepseek-ai+cfnews",
+                        "targets_updated": False,
+                    }
+
+                # Fallback rule-based
+                lines.append(
+                    f"\n*Source : CFNEWS.net — scraping page d'accueil ({len(articles)} articles total)*"
+                )
+                return {
+                    "response": "\n".join(lines),
+                    "source": "cfnews-scraping",
+                    "targets_updated": False,
+                }
+        except Exception as e:
+            print(f"[Copilot] CFNEWS error: {e}")
+
     # Broad intent detection — trigger Pappers for sector/screening queries
     wants_pappers = any(w in ql for w in [
         "pappers", "screening", "screener", "scan", "prospecter", "nouvelles cibles",
@@ -2532,7 +2591,8 @@ async def copilot_query(q: str = Query(...)):
                 '- **"Familiales"** — Cibles familiales\n'
                 '- **"Scoring"** — Methodologie de notation\n'
                 '- **"Relations"** — Reseau et proximite\n'
-                '- **"Filtres"** — Options de filtrage'
+                '- **"Filtres"** — Options de filtrage\n'
+                '- **"Veille CFNEWS"** — Actualites M&A du jour (scraping CFNEWS.net)'
             ),
             "source": "rule-based",
             "targets_updated": targets_updated,
@@ -2590,7 +2650,8 @@ async def copilot_query(q: str = Query(...)):
             '- **"Familiales"** — Entreprises familiales\n'
             '- **"Recherche Pappers"** — Tapez un nom d\'entreprise pour chercher via Pappers\n'
             '- **"Scoring"** — Explication de la methodologie\n'
-            '- **"EBITDA"** — Classement financier'
+            '- **"EBITDA"** — Classement financier\n'
+            '- **"Veille CFNEWS"** — Actualites M&A du jour'
         ),
         "source": "rule-based",
         "targets_updated": targets_updated,
