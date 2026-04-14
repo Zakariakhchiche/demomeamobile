@@ -86,7 +86,30 @@ def enrich_target(company):
     }
 
 
-PAPPERS_MCP_URL = os.getenv("PAPPERS_MCP_URL", "")
+def _resolve_pappers_url() -> str:
+    """Resolve Pappers MCP URL from env var or .mcp.json fallback."""
+    url = os.getenv("PAPPERS_MCP_URL", "")
+    if url:
+        return url
+    # Fallback: read from .mcp.json (project root)
+    for mcp_path in [
+        os.path.join(os.path.dirname(__file__), "..", ".mcp.json"),
+        os.path.join(os.path.dirname(__file__), ".mcp.json"),
+    ]:
+        try:
+            if os.path.exists(mcp_path):
+                with open(mcp_path, "r") as f:
+                    mcp_config = json.load(f)
+                url = (mcp_config.get("mcpServers", {}).get("pappers", {}).get("url", ""))
+                if url:
+                    print(f"[EdRCF] Pappers MCP URL loaded from {mcp_path}")
+                    return url
+        except Exception as e:
+            print(f"[EdRCF] .mcp.json read error: {e}")
+    return ""
+
+
+PAPPERS_MCP_URL = _resolve_pappers_url()
 
 # Global list populated at startup
 enriched_targets = []
