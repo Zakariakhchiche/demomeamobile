@@ -12,8 +12,8 @@
   },
   "rewrites": [
     {
-      "source": "/api/(.*)",
-      "destination": "/_/backend/api/$1"
+      "source": "/api/:path*",
+      "destination": "/_/backend/api/:path*"
     }
   ],
   "headers": [

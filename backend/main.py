@@ -97,10 +97,15 @@ raw_targets = []
 _targets_lock = asyncio.Lock()
 
 
-def _load_targets_sync():
-    """Load targets from cache (synchronous, safe for serverless cold start)."""
+def _load_targets_sync(force_reload: bool = False):
+    """Load targets from cache (synchronous, safe for serverless cold start).
+
+    With force_reload=True, always re-reads the cache file even if targets
+    are already in memory (useful to pick up targets added by other serverless
+    instances that wrote to the same cache path).
+    """
     global enriched_targets, raw_targets
-    if enriched_targets:
+    if enriched_targets and not force_reload:
         return  # Already loaded
     try:
         cached = load_cache()
@@ -108,14 +113,15 @@ def _load_targets_sync():
             raw_targets = cached
             enriched_targets = [enrich_target(c) for c in cached]
             print(f"[EdRCF] Loaded {len(enriched_targets)} targets from cache")
-        else:
+        elif not enriched_targets:
             enriched_targets = []
             raw_targets = []
-            print("[EdRCF] No cache found. Use /api/refresh-targets to load from Pappers")
+            print("[EdRCF] No cache found. Use the Copilot or /api/refresh-targets to load from Pappers")
     except Exception as e:
         print(f"[EdRCF] Cache load error: {e}")
-        enriched_targets = []
-        raw_targets = []
+        if not enriched_targets:
+            enriched_targets = []
+            raw_targets = []
 
 
 @asynccontextmanager
@@ -687,6 +693,10 @@ def get_targets(
     structure: Optional[str] = Query(None),
     publication_status: Optional[str] = Query(None),
 ):
+    # On serverless (Vercel), try reloading cache if empty — another instance
+    # may have written new targets since this instance started.
+    if not enriched_targets:
+        _load_targets_sync(force_reload=True)
     results = enriched_targets
     if q:
         ql = q.lower()
@@ -1400,6 +1410,8 @@ async def get_infogreffe_endpoint(siren: str):
 
 @app.get("/api/signals")
 def get_signals(severity: Optional[str] = Query(None)):
+    if not enriched_targets:
+        _load_targets_sync(force_reload=True)
     signals_feed = []
     for t in enriched_targets:
         for sig in t["topSignals"]:
@@ -1452,6 +1464,8 @@ def _default_stage(score: float) -> str:
 @app.get("/api/pipeline")
 def get_pipeline():
     """5 M&A stages pipeline — respects user-moved cards."""
+    if not enriched_targets:
+        _load_targets_sync(force_reload=True)
     pipeline = [{"id": s["id"], "title": s["title"], "color": s["color"], "cards": []} for s in PIPELINE_STAGES]
     stage_map = {s["id"]: s for s in pipeline}
 
@@ -2240,6 +2254,8 @@ async def copilot_query(q: str = Query(...)):
 @app.get("/api/graph")
 def get_graph():
     """Network graph data with EDR team, targets, advisors, and subsidiaries"""
+    if not enriched_targets:
+        _load_targets_sync(force_reload=True)
     nodes = [
         {
             "id": "edr-1",
