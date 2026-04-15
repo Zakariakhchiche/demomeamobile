@@ -1616,10 +1616,10 @@ async def cfnews_veille(limite: int = Query(10, ge=1, le=30)):
             company_info = None
 
         if company_info and isinstance(company_info, dict) and "siren" in company_info:
-            target = build_target(0, company_info, first)
+            target = enrich_target(build_target(0, company_info, first))
         else:
             # Fallback : construire depuis search_info
-            target = build_target(0, first, first)
+            target = enrich_target(build_target(0, first, first))
 
         # Injecter les métadonnées CFNEWS
         target["cfnews"] = {
